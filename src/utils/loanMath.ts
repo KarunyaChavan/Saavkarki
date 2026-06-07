@@ -200,3 +200,42 @@ export function searchWithinState(state: DatabaseAppState, query: string) {
 
   return { customers, vehicles, loans };
 }
+
+export function getMonthwiseInterestSummary(
+  loans: Loan[],
+  payments: Payment[],
+  monthPrefix: string,
+) {
+  const activeLoansInMonth = loans.filter((loan) => {
+    const startMonth = loan.loanDate.slice(0, 7);
+    if (startMonth > monthPrefix) return false;
+
+    if (loan.status === "closed") {
+      const closedMonth = (loan.updatedAt || loan.createdAt).slice(0, 7);
+      return closedMonth >= monthPrefix;
+    }
+
+    return true;
+  });
+
+  const paid: Loan[] = [];
+  const unpaid: Loan[] = [];
+
+  for (const loan of activeLoansInMonth) {
+    const hasPaidInMonth = payments.some(
+      (payment) =>
+        payment.loanId === loan.id &&
+        (payment.paymentType === "interest" ||
+          payment.paymentType === "settlement") &&
+        payment.paymentDate.startsWith(monthPrefix),
+    );
+
+    if (hasPaidInMonth) {
+      paid.push(loan);
+    } else {
+      unpaid.push(loan);
+    }
+  }
+
+  return { paid, unpaid };
+}

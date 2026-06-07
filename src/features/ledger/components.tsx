@@ -97,38 +97,38 @@ export function DetailHeader({
 }) {
   return (
     <View style={styles.detailHeader}>
-      <Pressable style={styles.secondaryButton} onPress={onBack}>
-        <Text style={styles.secondaryButtonText}>← {backLabel}</Text>
+      <Pressable style={styles.headerButton} onPress={onBack}>
+        <Text style={styles.headerButtonText}>← {backLabel}</Text>
       </Pressable>
       <View style={{ flex: 1, paddingHorizontal: 12 }}>
         <Text style={styles.detailTitle} numberOfLines={1}>
           {title}
         </Text>
         {subtitle ? (
-          <Text style={styles.rowSub} numberOfLines={1}>
+          <Text style={styles.detailSub} numberOfLines={1}>
             {subtitle}
           </Text>
         ) : null}
       </View>
       <View style={styles.detailActions}>
         {onEdit ? (
-          <Pressable style={styles.secondaryButton} onPress={onEdit}>
-            <Text style={styles.secondaryButtonText}>Edit</Text>
+          <Pressable style={styles.headerButton} onPress={onEdit}>
+            <Text style={styles.headerButtonText}>Edit</Text>
           </Pressable>
         ) : null}
         {onAddVehicle ? (
-          <Pressable style={styles.secondaryButton} onPress={onAddVehicle}>
-            <Text style={styles.secondaryButtonText}>+ Vehicle</Text>
+          <Pressable style={styles.headerButton} onPress={onAddVehicle}>
+            <Text style={styles.headerButtonText}>+ Collateral</Text>
           </Pressable>
         ) : null}
         {onAddDocument ? (
-          <Pressable style={styles.secondaryButton} onPress={onAddDocument}>
-            <Text style={styles.secondaryButtonText}>+ Doc</Text>
+          <Pressable style={styles.headerButton} onPress={onAddDocument}>
+            <Text style={styles.headerButtonText}>+ Document</Text>
           </Pressable>
         ) : null}
         {onAddPayment ? (
-          <Pressable style={styles.secondaryButton} onPress={onAddPayment}>
-            <Text style={styles.secondaryButtonText}>+ Payment</Text>
+          <Pressable style={styles.headerButton} onPress={onAddPayment}>
+            <Text style={styles.headerButtonText}>+ Payment</Text>
           </Pressable>
         ) : null}
       </View>
@@ -137,25 +137,34 @@ export function DetailHeader({
 }
 
 export function BottomBar({
-  onCreateCustomer,
-  onCreateLoan,
-  onCreateDocument,
+  activeTab,
+  onTabPress,
 }: {
-  onCreateCustomer: () => void;
-  onCreateLoan: () => void;
-  onCreateDocument: () => void;
+  activeTab: string;
+  onTabPress: (tab: any) => void;
 }) {
+  const tabs = [
+    { name: "dashboard", label: "Dashboard", icon: "🏠" },
+    { name: "customers", label: "Customers", icon: "👥" },
+    { name: "loans", label: "Loans", icon: "💰" },
+    { name: "search", label: "Search", icon: "🔍" },
+  ];
+
   return (
     <View style={styles.bottomBar}>
-      <Pressable style={styles.bottomAction} onPress={onCreateCustomer}>
-        <Text style={styles.bottomActionText}>+ Customer</Text>
-      </Pressable>
-      <Pressable style={styles.bottomAction} onPress={onCreateLoan}>
-        <Text style={styles.bottomActionText}>+ Loan</Text>
-      </Pressable>
-      <Pressable style={styles.bottomAction} onPress={onCreateDocument}>
-        <Text style={styles.bottomActionText}>+ Document</Text>
-      </Pressable>
+      {tabs.map((tab) => {
+        const isActive = activeTab === tab.name;
+        return (
+          <Pressable
+            key={tab.name}
+            style={[styles.bottomAction, isActive && styles.bottomActionActive]}
+            onPress={() => onTabPress(tab.name)}
+          >
+            <Text style={{ fontSize: 18, marginBottom: 2 }}>{tab.icon}</Text>
+            <Text style={styles.bottomActionText}>{tab.label}</Text>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
@@ -233,22 +242,29 @@ export function LoanDetailCard({
   customer?: Customer;
 }) {
   const summary = getLoanSummary(loan, payments, customer);
+  const vehicleLabel =
+    customer?.vehicles.find((v) => v.id === loan.vehicleId) ?? null;
+  const collateralLabel = vehicleLabel
+    ? vehicleLabel.vehicleType === "Bike" || vehicleLabel.vehicleType === "Car"
+      ? `${vehicleLabel.registrationNumber} (${vehicleLabel.make} ${vehicleLabel.model})`
+      : `${vehicleLabel.vehicleType} — ${vehicleLabel.make} ${vehicleLabel.model}`
+    : loan.vehicleId;
 
   return (
     <View style={styles.detailCard}>
-      <Text style={styles.detailCardTitle}>Loan summary</Text>
+      <Text style={styles.detailCardTitle}>Loan Summary</Text>
       <Text style={styles.bodyText}>
         Customer: {summary.customerName || "Unlinked customer"}
       </Text>
-      <Text style={styles.bodyText}>Vehicle: {summary.vehicleLabel}</Text>
+      <Text style={styles.bodyText}>Collateral: {collateralLabel}</Text>
       <Text style={styles.bodyText}>
-        Principal: {formatCurrency(summary.principalOutstanding)}
+        Principal outstanding: {formatCurrency(summary.principalOutstanding)}
       </Text>
       <Text style={styles.bodyText}>
         Interest due: {formatCurrency(summary.interestDue)}
       </Text>
       <Text style={styles.bodyText}>
-        Balance: {formatCurrency(summary.balance)}
+        Total balance: {formatCurrency(summary.balance)}
       </Text>
       <Text style={styles.bodyText}>Next due: {summary.dueLabel}</Text>
       <View style={{ marginTop: 12, alignItems: "flex-start" }}>

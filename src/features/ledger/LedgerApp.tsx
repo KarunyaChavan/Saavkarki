@@ -4,15 +4,12 @@ import {
   Image,
   Modal,
   Pressable,
-  SafeAreaView,
-  StatusBar,
   Text,
   View,
 } from "react-native";
 import { StatusBar as ExpoStatusBar } from "expo-status-bar";
 
 import { styles } from "../../styles/appStyles";
-import { Screen } from "../../types";
 import { BottomBar } from "./components";
 import {
   CustomerEditor,
@@ -31,19 +28,6 @@ import {
   SettingsScreen,
 } from "./screens";
 import { useLedgerController } from "./useLedgerController";
-
-const tabs: Screen[] = [
-  "dashboard",
-  "customers",
-  "loans",
-  "search",
-  "settings",
-];
-
-const tabLabel = (screen: Screen) =>
-  screen === "dashboard"
-    ? "Dashboard"
-    : screen[0].toUpperCase() + screen.slice(1);
 
 function DocumentViewerModal({
   visible,
@@ -142,16 +126,19 @@ export function LedgerApp() {
 
   if (ledger.loading || !ledger.state) {
     return (
-      <SafeAreaView style={styles.centered}>
-        <StatusBar barStyle="dark-content" />
+      <View style={styles.centered}>
+        <ExpoStatusBar style="light" />
         <ActivityIndicator size="large" color="#0f766e" />
         <Text style={styles.loadingText}>Loading local ledger...</Text>
-      </SafeAreaView>
+      </View>
     );
   }
 
   const openSelectedLoan = (loanId: string) => {
     ledger.setSelectedLoanId(loanId);
+    if (ledger.screen !== "customer-detail") {
+      ledger.setSelectedCustomerId(null);
+    }
     ledger.setScreen("loan-detail");
   };
 
@@ -160,8 +147,13 @@ export function LedgerApp() {
     ledger.setScreen("customer-detail");
   };
 
-  const openDefaultLoanModal = () =>
-    ledger.openLoanModal(ledger.defaultCustomerId, ledger.defaultVehicleId);
+  const openDefaultLoanModal = () => {
+    // If we are viewing a specific customer, pre-fill that customer in the loan form
+    const customerId = ledger.selectedCustomer?.id ?? ledger.defaultCustomerId;
+    const vehicleId =
+      ledger.selectedCustomer?.vehicles[0]?.id ?? ledger.defaultVehicleId;
+    ledger.openLoanModal(customerId, vehicleId);
+  };
   const selectedLoanPayments = ledger.state.payments.filter(
     (payment) => payment.loanId === ledger.selectedLoan?.id,
   );
@@ -173,8 +165,8 @@ export function LedgerApp() {
   const showBottomBar = !isDetailScreen;
 
   return (
-    <SafeAreaView style={styles.shell}>
-      <ExpoStatusBar style="dark" />
+    <View style={styles.shell}>
+      <ExpoStatusBar style="light" />
 
       {showMainHeader ? (
         <View style={styles.header}>
@@ -182,33 +174,21 @@ export function LedgerApp() {
             <Text style={styles.appTitle}>Saavkarki</Text>
             <Text style={styles.appSubtitle}>Local-first lending ledger</Text>
           </View>
-          <Pressable
-            style={styles.primaryButton}
-            onPress={() => ledger.openCustomerModal()}
-          >
-            <Text style={styles.primaryButtonText}>New customer</Text>
-          </Pressable>
-        </View>
-      ) : null}
-
-      {showMainHeader ? (
-        <View style={styles.tabs}>
-          {tabs.map((tab) => (
+          {ledger.screen === "settings" ? (
             <Pressable
-              key={tab}
-              style={[styles.tab, ledger.screen === tab && styles.tabActive]}
-              onPress={() => ledger.setScreen(tab)}
+              style={styles.headerButton}
+              onPress={() => ledger.setScreen("dashboard")}
             >
-              <Text
-                style={[
-                  styles.tabText,
-                  ledger.screen === tab && styles.tabTextActive,
-                ]}
-              >
-                {tabLabel(tab)}
-              </Text>
+              <Text style={styles.headerButtonText}>← Dashboard</Text>
             </Pressable>
-          ))}
+          ) : (
+            <Pressable
+              style={styles.headerButton}
+              onPress={() => ledger.setScreen("settings")}
+            >
+              <Text style={styles.headerButtonText}>⚙️ Settings</Text>
+            </Pressable>
+          )}
         </View>
       ) : null}
 
@@ -279,7 +259,14 @@ export function LedgerApp() {
           loan={ledger.selectedLoan}
           payments={selectedLoanPayments}
           customer={ledger.customerForLoan(ledger.selectedLoan.id)}
-          onBack={() => ledger.setScreen("loans")}
+          onBack={() => {
+            // Navigate back to the customer detail if a customer is selected, else loans list
+            if (ledger.selectedCustomer) {
+              ledger.setScreen("customer-detail");
+            } else {
+              ledger.setScreen("loans");
+            }
+          }}
           onAddPayment={() =>
             ledger.openPaymentModal(ledger.selectedLoan?.id ?? "")
           }
@@ -288,13 +275,8 @@ export function LedgerApp() {
 
       {showBottomBar ? (
         <BottomBar
-          onCreateCustomer={() => ledger.openCustomerModal()}
-          onCreateLoan={openDefaultLoanModal}
-          onCreateDocument={() =>
-            ledger.openDocumentModal(
-              ledger.selectedCustomer?.id ?? ledger.defaultCustomerId,
-            )
-          }
+          activeTab={ledger.screen}
+          onTabPress={(tab) => ledger.setScreen(tab)}
         />
       ) : null}
 
@@ -331,6 +313,8 @@ export function LedgerApp() {
         onChange={ledger.setLoanForm}
         onClose={ledger.closeModal}
         onSave={ledger.submitLoan}
+        customers={ledger.state.customers}
+        collaterals={ledger.state.vehicles}
       />
       <PaymentEditor
         visible={ledger.activeModal === "payment"}
@@ -348,6 +332,6 @@ export function LedgerApp() {
         onClose={ledger.closeModal}
         onSave={ledger.submitDocument}
       />
-    </SafeAreaView>
+    </View>
   );
 }

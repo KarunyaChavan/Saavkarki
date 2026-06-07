@@ -126,6 +126,7 @@ export function useLedgerController() {
             address: customer.address ?? "",
             notes: customer.notes ?? "",
             photoUri: customer.photoUri ?? "",
+            tempDocuments: [],
           }
         : emptyCustomerForm(),
     );
@@ -144,14 +145,7 @@ export function useLedgerController() {
     setActiveModal("vehicle");
   };
 
-  const openLoanModal = (customerId: string, vehicleId: string) => {
-    if (!customerId || !vehicleId) {
-      Alert.alert(
-        "Choose vehicle",
-        "Create or open a vehicle before creating a loan.",
-      );
-      return;
-    }
+  const openLoanModal = (customerId: string, vehicleId = "") => {
     setLoanForm(emptyLoanForm(customerId, vehicleId));
     setActiveModal("loan");
   };
@@ -191,9 +185,23 @@ export function useLedgerController() {
     try {
       if (editingCustomerId) {
         await updateCustomer(editingCustomerId, customerForm);
+        for (const doc of customerForm.tempDocuments) {
+          await createCustomerDocument({
+            vehicleId: "",
+            ...doc,
+            customerId: editingCustomerId,
+          });
+        }
       } else {
         const id = await createCustomer(customerForm);
         setSelectedCustomerId(id);
+        for (const doc of customerForm.tempDocuments) {
+          await createCustomerDocument({
+            vehicleId: "",
+            ...doc,
+            customerId: id,
+          });
+        }
       }
       await refresh();
       setEditingCustomerId(null);
@@ -204,14 +212,29 @@ export function useLedgerController() {
   };
 
   const submitVehicle = async () => {
-    if (!vehicleForm.registrationNumber.trim()) {
-      Alert.alert("Missing data", "Please enter a registration number.");
+    const isVehicle =
+      vehicleForm.vehicleType === "Bike" || vehicleForm.vehicleType === "Car";
+    if (isVehicle && !vehicleForm.registrationNumber.trim()) {
+      Alert.alert(
+        "Missing data",
+        "Please enter a registration number for the vehicle.",
+      );
+      return;
+    }
+    if (!vehicleForm.make.trim()) {
+      Alert.alert("Missing data", "Please enter the brand / manufacturer.");
       return;
     }
 
+    // For non-vehicle collateral that has no registration, use a safe placeholder
+    const formToSave = {
+      ...vehicleForm,
+      registrationNumber: vehicleForm.registrationNumber.trim() || "N/A",
+    };
+
     setBusy(true);
     try {
-      await createVehicle(vehicleForm);
+      await createVehicle(formToSave);
       await refresh();
       closeModal();
     } finally {
@@ -220,6 +243,22 @@ export function useLedgerController() {
   };
 
   const submitLoan = async () => {
+    if (!loanForm.customerId) {
+      Alert.alert("Missing data", "Please select a customer for this loan.");
+      return;
+    }
+    if (!loanForm.vehicleId) {
+      Alert.alert(
+        "Missing data",
+        "Please select collateral for this loan. Add collateral to the customer first if none appears.",
+      );
+      return;
+    }
+    if (!loanForm.principalAmount || Number(loanForm.principalAmount) <= 0) {
+      Alert.alert("Missing data", "Please enter a valid principal amount.");
+      return;
+    }
+
     setBusy(true);
     try {
       const id = await createLoan(loanForm);

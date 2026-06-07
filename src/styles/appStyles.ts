@@ -63,7 +63,6 @@ export const styles = StyleSheet.create({
   shell: {
     flex: 1,
     backgroundColor: THEME.colors.background,
-    paddingTop: Platform.OS === "android" ? 36 : 12,
   },
   centered: {
     flex: 1,
@@ -80,19 +79,23 @@ export const styles = StyleSheet.create({
   header: {
     paddingHorizontal: THEME.spacing.lg,
     paddingBottom: THEME.spacing.md,
+    paddingTop: Platform.select({ android: 40, ios: 56, default: 16 }),
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    backgroundColor: THEME.colors.primary,
+    borderBottomWidth: 1,
+    borderBottomColor: THEME.colors.primaryDark,
   },
   appTitle: {
     fontSize: 26,
     fontWeight: "800",
-    color: THEME.colors.primary,
+    color: "#ffffff",
     letterSpacing: -0.5,
   },
   appSubtitle: {
     fontSize: 13,
-    color: THEME.colors.textLight,
+    color: THEME.colors.primaryMedium,
     marginTop: 1,
   },
   primaryButton: {
@@ -120,6 +123,20 @@ export const styles = StyleSheet.create({
   secondaryButtonText: {
     color: THEME.colors.textDark,
     fontWeight: "600",
+    fontSize: 13,
+  },
+  // Button style for buttons that sit ON the teal primary header background
+  headerButton: {
+    backgroundColor: "rgba(255,255,255,0.18)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.35)",
+    paddingHorizontal: THEME.spacing.md,
+    paddingVertical: 8,
+    borderRadius: THEME.borderRadius.md,
+  },
+  headerButtonText: {
+    color: "#ffffff",
+    fontWeight: "700",
     fontSize: 13,
   },
   tabs: {
@@ -150,6 +167,7 @@ export const styles = StyleSheet.create({
     color: THEME.colors.primary,
   },
   scroll: {
+    paddingTop: THEME.spacing.md,
     paddingHorizontal: THEME.spacing.lg,
     paddingBottom: 108,
   },
@@ -316,10 +334,15 @@ export const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: THEME.spacing.md,
-    marginBottom: THEME.spacing.lg,
+    paddingTop: Platform.select({ android: 40, ios: 56, default: 16 }),
+    paddingHorizontal: THEME.spacing.lg,
     paddingBottom: THEME.spacing.md,
+    backgroundColor: THEME.colors.primary,
     borderBottomWidth: 1,
-    borderBottomColor: THEME.colors.divider,
+    borderBottomColor: THEME.colors.primaryDark,
+    marginHorizontal: -THEME.spacing.lg,
+    marginTop: -THEME.spacing.md,
+    marginBottom: THEME.spacing.lg,
   },
   detailActions: {
     flexDirection: "row",
@@ -328,10 +351,15 @@ export const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   detailTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: "800",
-    color: THEME.colors.textDark,
+    color: "#ffffff",
     letterSpacing: -0.5,
+  },
+  detailSub: {
+    fontSize: 13,
+    color: THEME.colors.primaryMedium,
+    marginTop: 1,
   },
   detailCard: {
     backgroundColor: THEME.colors.surface,
@@ -382,7 +410,11 @@ export const styles = StyleSheet.create({
   bottomActionText: {
     color: "#ffffff",
     fontWeight: "700",
-    fontSize: 13,
+    fontSize: 11,
+    textAlign: "center",
+  },
+  bottomActionActive: {
+    backgroundColor: THEME.colors.primary,
   },
 
   // Newly Added Styles for Enhanced UX

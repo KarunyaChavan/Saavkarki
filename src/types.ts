@@ -124,6 +124,16 @@ export type CustomerFormValues = {
   address: string;
   notes: string;
   photoUri: string;
+  tempDocuments: {
+    id: string;
+    documentScope: DocumentScope;
+    documentType: string;
+    documentNumber: string;
+    fileUri: string;
+    uploadDate: string;
+    expiryDate: string;
+    notes: string;
+  }[];
 };
 
 export type LoanFormValues = {

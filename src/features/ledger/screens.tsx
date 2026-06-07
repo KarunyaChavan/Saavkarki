@@ -16,6 +16,7 @@ import {
   formatDate,
   getLoanSummary,
   groupPayments,
+  getMonthwiseInterestSummary,
 } from "../../utils/loanMath";
 import {
   Avatar,
@@ -25,6 +26,22 @@ import {
   Section,
   StatGrid,
 } from "./components";
+import { DropdownPicker } from "./forms";
+
+function getCollateralPhoto(photoUrisJson: string) {
+  try {
+    const uris = JSON.parse(photoUrisJson || "[]");
+    return uris[0] || "";
+  } catch {
+    return "";
+  }
+}
+
+function formatMonthLabel(monthPrefix: string) {
+  const [year, month] = monthPrefix.split("-");
+  const date = new Date(parseInt(year, 10), parseInt(month, 10) - 1, 1);
+  return date.toLocaleDateString("en-IN", { month: "short", year: "numeric" });
+}
 
 export function DashboardScreen({
   state,
@@ -35,17 +52,141 @@ export function DashboardScreen({
   customerForLoan: (loanId: string) => Customer | undefined;
   onOpenLoan: (loanId: string) => void;
 }) {
+  const [selectedMonth, setSelectedMonth] = React.useState(() =>
+    new Date().toISOString().slice(0, 7),
+  );
+
+  const monthOptions = React.useMemo(() => {
+    const options = [];
+    const today = new Date();
+    for (let i = 0; i < 5; i++) {
+      const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      options.push(d.toISOString().slice(0, 7));
+    }
+    return options;
+  }, []);
+
+  const { paid, unpaid } = React.useMemo(() => {
+    return getMonthwiseInterestSummary(
+      state.loans,
+      state.payments,
+      selectedMonth,
+    );
+  }, [state.loans, state.payments, selectedMonth]);
+
   return (
     <ScrollView contentContainerStyle={styles.scroll}>
-      <View style={{ marginBottom: 16 }}>
-        <Text style={{ fontSize: 20, fontWeight: "700", color: "#0f172a" }}>
-          Welcome back!
-        </Text>
-        <Text style={{ fontSize: 13, color: "#64748b" }}>
-          Here is the summary of your lending portfolio.
-        </Text>
-      </View>
       <StatGrid dashboard={state.dashboard} />
+
+      {/* Month-wise collection status panel (Calculates automatically) */}
+      <Section title="Interest Status By Month">
+        <Text style={[styles.rowSub, { marginBottom: 10 }]}>
+          Select a calendar month to view interest collection status.
+        </Text>
+
+        <DropdownPicker
+          options={monthOptions.map((m) => ({
+            label: formatMonthLabel(m),
+            value: m,
+          }))}
+          selectedValue={selectedMonth}
+          onSelect={setSelectedMonth}
+          placeholder="Select month"
+        />
+
+        <View style={{ gap: 12 }}>
+          <View>
+            <Text
+              style={[styles.groupTitle, { color: "#16a34a", marginBottom: 6 }]}
+            >
+              Paid ({paid.length})
+            </Text>
+            {paid.length === 0 ? (
+              <Text
+                style={[
+                  styles.bodyText,
+                  { fontSize: 13, fontStyle: "italic", marginLeft: 6 },
+                ]}
+              >
+                No interest payments recorded for this month.
+              </Text>
+            ) : (
+              paid.map((loan) => {
+                const customer = customerForLoan(loan.id);
+                return (
+                  <Pressable
+                    key={loan.id}
+                    style={[
+                      styles.listRow,
+                      { paddingVertical: 8, marginBottom: 6 },
+                    ]}
+                    onPress={() => onOpenLoan(loan.id)}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.rowTitle, { fontSize: 14 }]}>
+                        {loan.loanCode}
+                      </Text>
+                      <Text style={styles.rowSub}>
+                        {customer?.fullName || "Customer"}
+                      </Text>
+                    </View>
+                    <Text style={[styles.risk, styles.risk_green]}>Paid</Text>
+                  </Pressable>
+                );
+              })
+            )}
+          </View>
+
+          <View
+            style={{
+              borderTopWidth: 1,
+              borderTopColor: "#f1f5f9",
+              paddingTop: 10,
+            }}
+          >
+            <Text
+              style={[styles.groupTitle, { color: "#dc2626", marginBottom: 6 }]}
+            >
+              Pending / Unpaid ({unpaid.length})
+            </Text>
+            {unpaid.length === 0 ? (
+              <Text
+                style={[
+                  styles.bodyText,
+                  { fontSize: 13, fontStyle: "italic", marginLeft: 6 },
+                ]}
+              >
+                All active loans are paid for this month!
+              </Text>
+            ) : (
+              unpaid.map((loan) => {
+                const customer = customerForLoan(loan.id);
+                return (
+                  <Pressable
+                    key={loan.id}
+                    style={[
+                      styles.listRow,
+                      { paddingVertical: 8, marginBottom: 6 },
+                    ]}
+                    onPress={() => onOpenLoan(loan.id)}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.rowTitle, { fontSize: 14 }]}>
+                        {loan.loanCode}
+                      </Text>
+                      <Text style={styles.rowSub}>
+                        {customer?.fullName || "Customer"}
+                      </Text>
+                    </View>
+                    <Text style={[styles.risk, styles.risk_red]}>Pending</Text>
+                  </Pressable>
+                );
+              })
+            )}
+          </View>
+        </View>
+      </Section>
+
       <Section title="Due soon">
         {state.loans.length === 0 ? (
           <Text style={styles.bodyText}>No active loans found.</Text>
@@ -151,7 +292,7 @@ export function LoansScreen({
             <View style={{ flex: 1 }}>
               <Text style={styles.rowTitle}>{loan.loanCode}</Text>
               <Text style={styles.rowSub}>
-                {summary.customerName || "Customer"} - {summary.vehicleLabel}
+                {summary.customerName || "Customer"}
               </Text>
             </View>
             <View style={{ alignItems: "flex-end" }}>
@@ -206,13 +347,17 @@ export function SearchScreen({
         ))}
       </Section>
 
-      <Section title={`Vehicles (${results.vehicles.length})`}>
-        {results.vehicles.map((vehicle) => (
-          <View key={vehicle.id} style={styles.listRow}>
+      <Section title={`Collateral (${results.vehicles.length})`}>
+        {results.vehicles.map((col) => (
+          <View key={col.id} style={styles.listRow}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.rowTitle}>{vehicle.registrationNumber}</Text>
+              <Text style={styles.rowTitle}>
+                {col.vehicleType === "Bike" || col.vehicleType === "Car"
+                  ? col.registrationNumber
+                  : `${col.vehicleType} (${col.make})`}
+              </Text>
               <Text style={styles.rowSub}>
-                {vehicle.make} {vehicle.model}
+                {col.make} {col.model}
               </Text>
             </View>
           </View>
@@ -261,13 +406,6 @@ export function SettingsScreen({
           </Pressable>
         </View>
       </Section>
-      <Section title="Current scope">
-        <Text style={styles.bodyText}>
-          Customers, vehicles, document vault entries, loan creation, payment
-          tracking, due-date summaries, dashboard metrics, and search are all
-          handled locally.
-        </Text>
-      </Section>
     </ScrollView>
   );
 }
@@ -300,13 +438,11 @@ export function CustomerDetailScreen({
   return (
     <ScrollView contentContainerStyle={styles.scroll}>
       <DetailHeader
-        title={customer.fullName}
+        title={customer.fullName.split(" ")[0]}
         subtitle={customer.mobileNumber}
         onBack={onBack}
         backLabel="Customers"
         onEdit={onEdit}
-        onAddVehicle={onAddVehicle}
-        onAddDocument={onAddDocument}
       />
 
       <Section title="Profile Info">
@@ -326,35 +462,66 @@ export function CustomerDetailScreen({
       </Section>
 
       <Section
-        title={`Vehicles (${customer.vehicles.length})`}
-        actionLabel="+ Add vehicle"
+        title={`Collateral (${customer.vehicles.length})`}
+        actionLabel="+ Add collateral"
         onAction={onAddVehicle}
       >
         {customer.vehicles.length === 0 ? (
-          <Text style={styles.bodyText}>No vehicles recorded.</Text>
+          <Text style={styles.bodyText}>No collateral recorded.</Text>
         ) : (
-          customer.vehicles.map((vehicle) => (
-            <View key={vehicle.id} style={styles.listRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.rowTitle}>
-                  {vehicle.registrationNumber} ({vehicle.vehicleType})
-                </Text>
-                <Text style={styles.rowSub}>
-                  {vehicle.make} {vehicle.model} - {vehicle.year} (
-                  {vehicle.color})
-                </Text>
+          customer.vehicles.map((col) => {
+            const photo = getCollateralPhoto(col.photoUrisJson);
+            const isVehicle =
+              col.vehicleType === "Bike" || col.vehicleType === "Car";
+            const colLabel = isVehicle
+              ? `${col.registrationNumber} (${col.make} ${col.model})`
+              : `${col.make} - ${col.model} (${col.chassisNumber || "No serial"})`;
+
+            return (
+              <View key={col.id} style={styles.listRow}>
+                {photo ? (
+                  <Image
+                    source={{ uri: photo }}
+                    style={{
+                      width: 50,
+                      height: 50,
+                      borderRadius: 6,
+                      marginRight: 4,
+                    }}
+                  />
+                ) : (
+                  <View
+                    style={{
+                      width: 50,
+                      height: 50,
+                      borderRadius: 6,
+                      backgroundColor: "#ccfbf1",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginRight: 4,
+                    }}
+                  >
+                    <Text style={{ fontSize: 20 }}>📦</Text>
+                  </View>
+                )}
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.rowTitle}>{col.vehicleType}</Text>
+                  <Text style={styles.rowSub} numberOfLines={2}>
+                    {colLabel}
+                  </Text>
+                </View>
+                <Pressable
+                  style={[
+                    styles.secondaryButton,
+                    { paddingVertical: 6, paddingHorizontal: 10 },
+                  ]}
+                  onPress={() => onAddLoan()}
+                >
+                  <Text style={styles.secondaryButtonText}>+ Loan</Text>
+                </Pressable>
               </View>
-              <Pressable
-                style={[
-                  styles.secondaryButton,
-                  { paddingVertical: 6, paddingHorizontal: 10 },
-                ]}
-                onPress={() => onAddLoan()}
-              >
-                <Text style={styles.secondaryButtonText}>Create Loan</Text>
-              </Pressable>
-            </View>
-          ))
+            );
+          })
         )}
       </Section>
 

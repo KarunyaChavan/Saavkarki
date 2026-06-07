@@ -15,6 +15,7 @@ export const emptyCustomerForm = (): CustomerFormValues => ({
   address: "",
   notes: "",
   photoUri: "",
+  tempDocuments: [],
 });
 
 export const emptyVehicleForm = (customerId: string): Vehicle => ({
