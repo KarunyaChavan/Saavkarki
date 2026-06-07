@@ -14,7 +14,11 @@ export function formatDate(value: string) {
   if (!value) return "-";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  return date.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 export function dateKey(value: string | Date) {
@@ -54,7 +58,10 @@ export function groupPayments(payments: Payment[]) {
     list.push(payment);
     groups.set(label, list);
   }
-  return Array.from(groups.entries()).map(([label, items]) => ({ label, items }));
+  return Array.from(groups.entries()).map(([label, items]) => ({
+    label,
+    items,
+  }));
 }
 
 export function summarizeLoan(loan: Loan, payments: Payment[]) {
@@ -68,17 +75,42 @@ export function summarizeLoan(loan: Loan, payments: Payment[]) {
     .filter((payment) => payment.paymentType === "settlement")
     .reduce((sum, payment) => sum + payment.amount, 0);
 
-  const principalOutstanding = Math.max(0, loan.principalAmount - principalPaymentTotal - settlementPaymentTotal);
+  const principalOutstanding = Math.max(
+    0,
+    loan.principalAmount - principalPaymentTotal - settlementPaymentTotal,
+  );
   const monthsElapsed = Math.max(1, Math.ceil(daysBetween(loan.loanDate) / 30));
   const expectedSimpleInterest = getLoanMonthlyInterest(loan) * monthsElapsed;
-  const compoundedBalance = loan.principalAmount * Math.pow(1 + loan.interestRate / 100, monthsElapsed);
-  const expectedInterest = loan.interestMode === "compound" ? Math.max(0, compoundedBalance - loan.principalAmount) : expectedSimpleInterest;
-  const interestDue = Math.max(0, expectedInterest - interestPaymentTotal - settlementPaymentTotal);
-  const balance = loan.interestMode === "compound"
-    ? Math.max(0, compoundedBalance - principalPaymentTotal - interestPaymentTotal - settlementPaymentTotal)
-    : Math.max(0, principalOutstanding + interestDue);
+  const compoundedBalance =
+    loan.principalAmount * Math.pow(1 + loan.interestRate / 100, monthsElapsed);
+  const expectedInterest =
+    loan.interestMode === "compound"
+      ? Math.max(0, compoundedBalance - loan.principalAmount)
+      : expectedSimpleInterest;
+  const interestDue = Math.max(
+    0,
+    expectedInterest - interestPaymentTotal - settlementPaymentTotal,
+  );
+  const balance =
+    loan.interestMode === "compound"
+      ? Math.max(
+          0,
+          compoundedBalance -
+            principalPaymentTotal -
+            interestPaymentTotal -
+            settlementPaymentTotal,
+        )
+      : Math.max(0, principalOutstanding + interestDue);
 
-  const nextDueDate = addMonths(loan.loanDate, Math.max(1, Math.floor(interestPaymentTotal / Math.max(1, getLoanMonthlyInterest(loan)))) + 1);
+  const nextDueDate = addMonths(
+    loan.loanDate,
+    Math.max(
+      1,
+      Math.floor(
+        interestPaymentTotal / Math.max(1, getLoanMonthlyInterest(loan)),
+      ),
+    ) + 1,
+  );
   const daysRemaining = daysBetween(dateKey(new Date()), nextDueDate);
 
   return {
@@ -100,7 +132,11 @@ export function getLoanRiskTone(daysRemaining: number, status: string) {
   return "green" as const;
 }
 
-export function getLoanSummary(loan: Loan, payments: Payment[], customer?: Customer) {
+export function getLoanSummary(
+  loan: Loan,
+  payments: Payment[],
+  customer?: Customer,
+) {
   const core = summarizeLoan(loan, payments);
   const daysRemaining = daysBetween(dateKey(new Date()), core.nextDueDate);
   const tone = getLoanRiskTone(daysRemaining, loan.status);
@@ -115,7 +151,9 @@ export function getLoanSummary(loan: Loan, payments: Payment[], customer?: Custo
     dueLabel,
     statusLabel: loan.status,
     customerName: customer?.fullName ?? "",
-    vehicleLabel: customer?.vehicles.find((vehicle) => vehicle.id === loan.vehicleId)?.registrationNumber ?? loan.vehicleId,
+    vehicleLabel:
+      customer?.vehicles.find((vehicle) => vehicle.id === loan.vehicleId)
+        ?.registrationNumber ?? loan.vehicleId,
   };
 }
 
@@ -130,7 +168,13 @@ export function searchWithinState(state: DatabaseAppState, query: string) {
   }
 
   const customers = state.customers.filter((customer) =>
-    [customer.fullName, customer.mobileNumber, customer.alternateMobileNumber, customer.address, customer.notes]
+    [
+      customer.fullName,
+      customer.mobileNumber,
+      customer.alternateMobileNumber,
+      customer.address,
+      customer.notes,
+    ]
       .filter(Boolean)
       .some((value) => String(value).toLowerCase().includes(normalized)),
   );
@@ -146,8 +190,12 @@ export function searchWithinState(state: DatabaseAppState, query: string) {
       .some((value) => String(value).toLowerCase().includes(normalized)),
   );
   const loans = state.loans.filter((loan) =>
-    [loan.loanCode, loan.status, String(loan.principalAmount), String(loan.interestRate)]
-      .some((value) => value.toLowerCase().includes(normalized)),
+    [
+      loan.loanCode,
+      loan.status,
+      String(loan.principalAmount),
+      String(loan.interestRate),
+    ].some((value) => value.toLowerCase().includes(normalized)),
   );
 
   return { customers, vehicles, loans };

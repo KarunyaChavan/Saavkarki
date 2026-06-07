@@ -12,7 +12,12 @@ import {
   PaymentFormValues,
   Vehicle,
 } from "../types";
-import { dateKey, isSameDate, summarizeLoan, toNumber } from "../utils/loanMath";
+import {
+  dateKey,
+  isSameDate,
+  summarizeLoan,
+  toNumber,
+} from "../utils/loanMath";
 
 type CustomerRow = Omit<Customer, "vehicles" | "loans" | "documents">;
 
@@ -64,7 +69,13 @@ function writeStore(store: WebStore) {
   window.localStorage.setItem(storageKey, JSON.stringify(store));
 }
 
-function audit(store: WebStore, entityType: string, entityId: string, action: string, payload: unknown) {
+function audit(
+  store: WebStore,
+  entityType: string,
+  entityId: string,
+  action: string,
+  payload: unknown,
+) {
   store.auditLogs.unshift({
     id: uid("log"),
     entityType,
@@ -75,7 +86,13 @@ function audit(store: WebStore, entityType: string, entityId: string, action: st
   });
 }
 
-function createNotification(store: WebStore, loanId: string, title: string, body: string, dueDate: string) {
+function createNotification(
+  store: WebStore,
+  loanId: string,
+  title: string,
+  body: string,
+  dueDate: string,
+) {
   store.notifications.unshift({
     id: uid("ntf"),
     loanId,
@@ -267,7 +284,13 @@ export async function createLoan(values: LoanFormValues) {
     createdAt: stamp,
     updatedAt: stamp,
   });
-  createNotification(store, id, "Loan created", `Loan ${loanCode} is active.`, values.dueDate);
+  createNotification(
+    store,
+    id,
+    "Loan created",
+    `Loan ${loanCode} is active.`,
+    values.dueDate,
+  );
   audit(store, "loan", id, "create", values);
   writeStore(store);
   return id;
@@ -289,7 +312,10 @@ export async function createPayment(values: PaymentFormValues) {
 
   const loan = store.loans.find((item) => item.id === values.loanId);
   if (loan) {
-    const summary = summarizeLoan(loan, store.payments.filter((payment) => payment.loanId === values.loanId));
+    const summary = summarizeLoan(
+      loan,
+      store.payments.filter((payment) => payment.loanId === values.loanId),
+    );
     if (summary.balance <= 0) loan.status = "closed";
     else if (summary.daysRemaining < 0) loan.status = "overdue";
     loan.updatedAt = now();
@@ -303,9 +329,13 @@ export async function createPayment(values: PaymentFormValues) {
 function hydrateCustomers(store: WebStore): Customer[] {
   return store.customers.map((customer) => ({
     ...customer,
-    vehicles: store.vehicles.filter((vehicle) => vehicle.customerId === customer.id),
+    vehicles: store.vehicles.filter(
+      (vehicle) => vehicle.customerId === customer.id,
+    ),
     loans: store.loans.filter((loan) => loan.customerId === customer.id),
-    documents: store.documents.filter((document) => document.customerId === customer.id),
+    documents: store.documents.filter(
+      (document) => document.customerId === customer.id,
+    ),
   }));
 }
 
@@ -314,7 +344,10 @@ function computeDashboard(loans: Loan[], payments: Payment[]) {
   let expectedCollections = 0;
 
   for (const loan of loans) {
-    const summary = summarizeLoan(loan, payments.filter((payment) => payment.loanId === loan.id));
+    const summary = summarizeLoan(
+      loan,
+      payments.filter((payment) => payment.loanId === loan.id),
+    );
     totalOutstandingPrincipal += summary.principalOutstanding;
     expectedCollections += summary.interestDue;
   }
@@ -326,7 +359,11 @@ function computeDashboard(loans: Loan[], payments: Payment[]) {
     totalMoneyLent: loans.reduce((sum, loan) => sum + loan.principalAmount, 0),
     totalOutstandingPrincipal,
     totalInterestCollected: payments
-      .filter((payment) => payment.paymentType === "interest" || payment.paymentType === "settlement")
+      .filter(
+        (payment) =>
+          payment.paymentType === "interest" ||
+          payment.paymentType === "settlement",
+      )
       .reduce((sum, payment) => sum + payment.amount, 0),
     activeLoans: loans.filter((loan) => loan.status === "active").length,
     overdueLoans: loans.filter((loan) => loan.status === "overdue").length,

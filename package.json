@@ -8,10 +8,12 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx"
   },
   "dependencies": {
     "expo": "latest",
+    "expo-document-picker": "^56.0.4",
     "expo-sqlite": "latest",
     "expo-status-bar": "latest",
     "react": "^19.2.7",
@@ -21,6 +23,8 @@
   },
   "devDependencies": {
     "@types/react": "latest",
+    "eslint": "^8.57.1",
+    "eslint-config-universe": "^15.2.0",
     "typescript": "latest"
   }
 }

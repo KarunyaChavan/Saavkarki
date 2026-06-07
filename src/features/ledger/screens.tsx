@@ -1,11 +1,30 @@
 import React from "react";
-import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import {
+  Image,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 
 import { styles } from "../../styles/appStyles";
 import { Customer, DatabaseAppState, Loan, Vehicle } from "../../types";
 import { toneClass } from "../../utils/display";
-import { formatCurrency, formatDate, getLoanSummary, groupPayments } from "../../utils/loanMath";
-import { DetailHeader, LoanDetailCard, ScreenList, Section, StatGrid } from "./components";
+import {
+  formatCurrency,
+  formatDate,
+  getLoanSummary,
+  groupPayments,
+} from "../../utils/loanMath";
+import {
+  Avatar,
+  DetailHeader,
+  LoanDetailCard,
+  ScreenList,
+  Section,
+  StatGrid,
+} from "./components";
 
 export function DashboardScreen({
   state,
@@ -18,25 +37,47 @@ export function DashboardScreen({
 }) {
   return (
     <ScrollView contentContainerStyle={styles.scroll}>
+      <View style={{ marginBottom: 16 }}>
+        <Text style={{ fontSize: 20, fontWeight: "700", color: "#0f172a" }}>
+          Welcome back!
+        </Text>
+        <Text style={{ fontSize: 13, color: "#64748b" }}>
+          Here is the summary of your lending portfolio.
+        </Text>
+      </View>
       <StatGrid dashboard={state.dashboard} />
       <Section title="Due soon">
-        {state.loans.slice(0, 5).map((loan) => {
-          const summary = getLoanSummary(
-            loan,
-            state.payments.filter((payment) => payment.loanId === loan.id),
-            customerForLoan(loan.id),
-          );
+        {state.loans.length === 0 ? (
+          <Text style={styles.bodyText}>No active loans found.</Text>
+        ) : (
+          state.loans.slice(0, 5).map((loan) => {
+            const summary = getLoanSummary(
+              loan,
+              state.payments.filter((payment) => payment.loanId === loan.id),
+              customerForLoan(loan.id),
+            );
 
-          return (
-            <Pressable key={loan.id} style={styles.listRow} onPress={() => onOpenLoan(loan.id)}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.rowTitle}>{loan.loanCode}</Text>
-                <Text style={styles.rowSub}>{summary.customerName || "Customer"}</Text>
-              </View>
-              <Text style={[styles.risk, toneClass(summary.tone)]}>{summary.dueLabel}</Text>
-            </Pressable>
-          );
-        })}
+            return (
+              <Pressable
+                key={loan.id}
+                style={styles.listRow}
+                onPress={() => onOpenLoan(loan.id)}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.rowTitle}>{loan.loanCode}</Text>
+                  <Text style={styles.rowSub}>
+                    {summary.customerName || "Customer"}
+                  </Text>
+                </View>
+                <View style={{ alignItems: "flex-end" }}>
+                  <Text style={[styles.risk, toneClass(summary.tone)]}>
+                    {summary.dueLabel}
+                  </Text>
+                </View>
+              </Pressable>
+            );
+          })
+        )}
       </Section>
     </ScrollView>
   );
@@ -54,12 +95,17 @@ export function CustomersScreen({
   return (
     <ScreenList
       title="Customers"
-      actionLabel="Add customer"
+      actionLabel="+ Add customer"
       onAction={onCreate}
       items={customers}
       emptyText="No customers yet."
       renderItem={(customer) => (
-        <Pressable key={customer.id} style={styles.listRow} onPress={() => onSelect(customer.id)}>
+        <Pressable
+          key={customer.id}
+          style={styles.listRow}
+          onPress={() => onSelect(customer.id)}
+        >
+          <Avatar name={customer.fullName} />
           <View style={{ flex: 1 }}>
             <Text style={styles.rowTitle}>{customer.fullName}</Text>
             <Text style={styles.rowSub}>{customer.mobileNumber}</Text>
@@ -85,7 +131,7 @@ export function LoansScreen({
   return (
     <ScreenList
       title="Loans"
-      actionLabel="Add loan"
+      actionLabel="+ Add loan"
       onAction={onCreate}
       items={state.loans}
       emptyText="No loans yet."
@@ -97,7 +143,11 @@ export function LoansScreen({
         );
 
         return (
-          <Pressable key={loan.id} style={styles.listRow} onPress={() => onSelect(loan.id)}>
+          <Pressable
+            key={loan.id}
+            style={styles.listRow}
+            onPress={() => onSelect(loan.id)}
+          >
             <View style={{ flex: 1 }}>
               <Text style={styles.rowTitle}>{loan.loanCode}</Text>
               <Text style={styles.rowSub}>
@@ -105,8 +155,12 @@ export function LoansScreen({
               </Text>
             </View>
             <View style={{ alignItems: "flex-end" }}>
-              <Text style={styles.rowAmount}>{formatCurrency(summary.balance)}</Text>
-              <Text style={[styles.risk, toneClass(summary.tone)]}>{summary.statusLabel}</Text>
+              <Text style={styles.rowAmount}>
+                {formatCurrency(summary.balance)}
+              </Text>
+              <Text style={[styles.risk, toneClass(summary.tone)]}>
+                {summary.statusLabel}
+              </Text>
             </View>
           </Pressable>
         );
@@ -141,7 +195,12 @@ export function SearchScreen({
 
       <Section title={`Customers (${results.customers.length})`}>
         {results.customers.map((customer) => (
-          <Pressable key={customer.id} style={styles.listRow} onPress={() => onSelectCustomer(customer.id)}>
+          <Pressable
+            key={customer.id}
+            style={styles.listRow}
+            onPress={() => onSelectCustomer(customer.id)}
+          >
+            <Avatar name={customer.fullName} />
             <Text style={styles.rowTitle}>{customer.fullName}</Text>
           </Pressable>
         ))}
@@ -162,7 +221,11 @@ export function SearchScreen({
 
       <Section title={`Loans (${results.loans.length})`}>
         {results.loans.map((loan) => (
-          <Pressable key={loan.id} style={styles.listRow} onPress={() => onSelectLoan(loan.id)}>
+          <Pressable
+            key={loan.id}
+            style={styles.listRow}
+            onPress={() => onSelectLoan(loan.id)}
+          >
             <View style={{ flex: 1 }}>
               <Text style={styles.rowTitle}>{loan.loanCode}</Text>
               <Text style={styles.rowSub}>{loan.status}</Text>
@@ -174,22 +237,35 @@ export function SearchScreen({
   );
 }
 
-export function SettingsScreen({ busy, onReset }: { busy: boolean; onReset: () => void }) {
+export function SettingsScreen({
+  busy,
+  onReset,
+}: {
+  busy: boolean;
+  onReset: () => void;
+}) {
   return (
     <ScrollView contentContainerStyle={styles.scroll}>
       <Section title="Local storage">
         <Text style={styles.bodyText}>
-          The app currently stores customers, vehicles, loans, payments, and documents in SQLite on this
-          device.
+          The app currently stores customers, vehicles, loans, payments, and
+          documents in SQLite on this device.
         </Text>
-        <Pressable style={styles.secondaryButton} onPress={onReset} disabled={busy}>
-          <Text style={styles.secondaryButtonText}>Clear demo data</Text>
-        </Pressable>
+        <View style={{ marginTop: 12 }}>
+          <Pressable
+            style={styles.secondaryButton}
+            onPress={onReset}
+            disabled={busy}
+          >
+            <Text style={styles.secondaryButtonText}>Clear demo data</Text>
+          </Pressable>
+        </View>
       </Section>
       <Section title="Current scope">
         <Text style={styles.bodyText}>
-          Customers, vehicles, document vault entries, loan creation, payment tracking, due-date summaries,
-          dashboard metrics, and search are all handled locally.
+          Customers, vehicles, document vault entries, loan creation, payment
+          tracking, due-date summaries, dashboard metrics, and search are all
+          handled locally.
         </Text>
       </Section>
     </ScrollView>
@@ -205,6 +281,7 @@ export function CustomerDetailScreen({
   onAddDocument,
   onAddLoan,
   onSelectLoan,
+  onViewDocument,
 }: {
   customer: Customer;
   state: DatabaseAppState;
@@ -214,55 +291,157 @@ export function CustomerDetailScreen({
   onAddDocument: () => void;
   onAddLoan: () => void;
   onSelectLoan: (loanId: string) => void;
+  onViewDocument: (doc: any) => void;
 }) {
+  const documents = state.documents.filter(
+    (doc) => doc.customerId === customer.id,
+  );
+
   return (
     <ScrollView contentContainerStyle={styles.scroll}>
       <DetailHeader
         title={customer.fullName}
         subtitle={customer.mobileNumber}
         onBack={onBack}
+        backLabel="Customers"
         onEdit={onEdit}
         onAddVehicle={onAddVehicle}
         onAddDocument={onAddDocument}
       />
 
-      <Section title="Profile">
-        <Text style={styles.bodyText}>{customer.address || "No address recorded."}</Text>
-        <Text style={styles.bodyText}>{customer.notes || "No notes recorded."}</Text>
+      <Section title="Profile Info">
+        <View style={{ gap: 6 }}>
+          {customer.alternateMobileNumber ? (
+            <Text style={styles.bodyText}>
+              Alt Phone: {customer.alternateMobileNumber}
+            </Text>
+          ) : null}
+          <Text style={styles.bodyText}>
+            Address: {customer.address || "No address recorded."}
+          </Text>
+          <Text style={styles.bodyText}>
+            Notes: {customer.notes || "No notes recorded."}
+          </Text>
+        </View>
       </Section>
 
-      <Section title={`Vehicles (${customer.vehicles.length})`} actionLabel="Add vehicle" onAction={onAddVehicle}>
-        {customer.vehicles.map((vehicle) => (
-          <Pressable key={vehicle.id} style={styles.listRow} onPress={() => onAddLoan()}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.rowTitle}>{vehicle.registrationNumber}</Text>
-              <Text style={styles.rowSub}>
-                {vehicle.make} {vehicle.model} {vehicle.year}
-              </Text>
-            </View>
-            <Text style={styles.chevron}>+</Text>
-          </Pressable>
-        ))}
-      </Section>
-
-      <Section title={`Loans (${customer.loans.length})`} actionLabel="Add loan" onAction={onAddLoan}>
-        {customer.loans.map((loan) => {
-          const summary = getLoanSummary(
-            loan,
-            state.payments.filter((payment) => payment.loanId === loan.id),
-            customer,
-          );
-
-          return (
-            <Pressable key={loan.id} style={styles.listRow} onPress={() => onSelectLoan(loan.id)}>
+      <Section
+        title={`Vehicles (${customer.vehicles.length})`}
+        actionLabel="+ Add vehicle"
+        onAction={onAddVehicle}
+      >
+        {customer.vehicles.length === 0 ? (
+          <Text style={styles.bodyText}>No vehicles recorded.</Text>
+        ) : (
+          customer.vehicles.map((vehicle) => (
+            <View key={vehicle.id} style={styles.listRow}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.rowTitle}>{loan.loanCode}</Text>
-                <Text style={styles.rowSub}>{formatCurrency(summary.balance)} remaining</Text>
+                <Text style={styles.rowTitle}>
+                  {vehicle.registrationNumber} ({vehicle.vehicleType})
+                </Text>
+                <Text style={styles.rowSub}>
+                  {vehicle.make} {vehicle.model} - {vehicle.year} (
+                  {vehicle.color})
+                </Text>
               </View>
-              <Text style={[styles.risk, toneClass(summary.tone)]}>{summary.dueLabel}</Text>
-            </Pressable>
-          );
-        })}
+              <Pressable
+                style={[
+                  styles.secondaryButton,
+                  { paddingVertical: 6, paddingHorizontal: 10 },
+                ]}
+                onPress={() => onAddLoan()}
+              >
+                <Text style={styles.secondaryButtonText}>Create Loan</Text>
+              </Pressable>
+            </View>
+          ))
+        )}
+      </Section>
+
+      <Section
+        title={`Loans (${customer.loans.length})`}
+        actionLabel="+ Add loan"
+        onAction={onAddLoan}
+      >
+        {customer.loans.length === 0 ? (
+          <Text style={styles.bodyText}>No loans recorded.</Text>
+        ) : (
+          customer.loans.map((loan) => {
+            const summary = getLoanSummary(
+              loan,
+              state.payments.filter((payment) => payment.loanId === loan.id),
+              customer,
+            );
+
+            return (
+              <Pressable
+                key={loan.id}
+                style={styles.listRow}
+                onPress={() => onSelectLoan(loan.id)}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.rowTitle}>{loan.loanCode}</Text>
+                  <Text style={styles.rowSub}>
+                    {formatCurrency(summary.balance)} outstanding
+                  </Text>
+                </View>
+                <View style={{ alignItems: "flex-end" }}>
+                  <Text style={[styles.risk, toneClass(summary.tone)]}>
+                    {summary.statusLabel}
+                  </Text>
+                  <Text style={[styles.rowSub, { marginTop: 4 }]}>
+                    {summary.dueLabel}
+                  </Text>
+                </View>
+              </Pressable>
+            );
+          })
+        )}
+      </Section>
+
+      <Section
+        title={`Document Vault (${documents.length})`}
+        actionLabel="+ Add document"
+        onAction={onAddDocument}
+      >
+        {documents.length === 0 ? (
+          <Text style={styles.bodyText}>No documents uploaded yet.</Text>
+        ) : (
+          <View style={styles.docGrid}>
+            {documents.map((doc) => {
+              const isImage =
+                doc.fileUri &&
+                (doc.fileUri.startsWith("data:image/") ||
+                  doc.fileUri.toLowerCase().endsWith(".png") ||
+                  doc.fileUri.toLowerCase().endsWith(".jpg") ||
+                  doc.fileUri.toLowerCase().endsWith(".jpeg") ||
+                  doc.fileUri.toLowerCase().endsWith(".webp"));
+
+              return (
+                <Pressable
+                  key={doc.id}
+                  style={styles.docCard}
+                  onPress={() => onViewDocument(doc)}
+                >
+                  {isImage ? (
+                    <Image
+                      source={{ uri: doc.fileUri }}
+                      style={styles.thumbnail}
+                    />
+                  ) : (
+                    <Text style={styles.docIconText}>📄</Text>
+                  )}
+                  <Text style={styles.docTitle} numberOfLines={1}>
+                    {doc.documentType}
+                  </Text>
+                  <Text style={styles.docSub} numberOfLines={1}>
+                    {doc.documentNumber}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
       </Section>
     </ScrollView>
   );
@@ -283,24 +462,42 @@ export function LoanDetailScreen({
 }) {
   return (
     <ScrollView contentContainerStyle={styles.scroll}>
-      <DetailHeader title={loan.loanCode} subtitle={loan.status} onBack={onBack} onAddPayment={onAddPayment} />
+      <DetailHeader
+        title={loan.loanCode}
+        subtitle={loan.status}
+        onBack={onBack}
+        backLabel="Loans"
+        onAddPayment={onAddPayment}
+      />
       <LoanDetailCard loan={loan} payments={payments} customer={customer} />
 
-      <Section title="Payments" actionLabel="Add payment" onAction={onAddPayment}>
-        {groupPayments(payments).map((group) => (
-          <View key={group.label} style={styles.groupBlock}>
-            <Text style={styles.groupTitle}>{group.label}</Text>
-            {group.items.map((payment) => (
-              <View key={payment.id} style={styles.listRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.rowTitle}>{payment.paymentType}</Text>
-                  <Text style={styles.rowSub}>{formatDate(payment.paymentDate)}</Text>
+      <Section
+        title="Payments"
+        actionLabel="Add payment"
+        onAction={onAddPayment}
+      >
+        {payments.length === 0 ? (
+          <Text style={styles.bodyText}>No payments recorded yet.</Text>
+        ) : (
+          groupPayments(payments).map((group) => (
+            <View key={group.label} style={styles.groupBlock}>
+              <Text style={styles.groupTitle}>{group.label}</Text>
+              {group.items.map((payment) => (
+                <View key={payment.id} style={styles.listRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.rowTitle}>{payment.paymentType}</Text>
+                    <Text style={styles.rowSub}>
+                      {formatDate(payment.paymentDate)}
+                    </Text>
+                  </View>
+                  <Text style={styles.rowAmount}>
+                    {formatCurrency(payment.amount)}
+                  </Text>
                 </View>
-                <Text style={styles.rowAmount}>{formatCurrency(payment.amount)}</Text>
-              </View>
-            ))}
-          </View>
-        ))}
+              ))}
+            </View>
+          ))
+        )}
       </Section>
     </ScrollView>
   );

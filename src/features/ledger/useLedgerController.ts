@@ -40,16 +40,27 @@ export function useLedgerController() {
   const [busy, setBusy] = useState(false);
   const [state, setState] = useState<DatabaseAppState | null>(null);
   const [query, setQuery] = useState("");
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(
+    null,
+  );
   const [selectedLoanId, setSelectedLoanId] = useState<string | null>(null);
-  const [editingCustomerId, setEditingCustomerId] = useState<string | null>(null);
+  const [editingCustomerId, setEditingCustomerId] = useState<string | null>(
+    null,
+  );
   const [activeModal, setActiveModal] = useState<ModalKey | null>(null);
 
-  const [customerForm, setCustomerForm] = useState<CustomerFormValues>(emptyCustomerForm());
+  const [customerForm, setCustomerForm] =
+    useState<CustomerFormValues>(emptyCustomerForm());
   const [vehicleForm, setVehicleForm] = useState<Vehicle>(emptyVehicleForm(""));
-  const [loanForm, setLoanForm] = useState<LoanFormValues>(emptyLoanForm("", ""));
-  const [paymentForm, setPaymentForm] = useState<PaymentFormValues>(emptyPaymentForm(""));
-  const [documentForm, setDocumentForm] = useState<DocumentFormValues>(emptyDocumentForm(""));
+  const [loanForm, setLoanForm] = useState<LoanFormValues>(
+    emptyLoanForm("", ""),
+  );
+  const [paymentForm, setPaymentForm] = useState<PaymentFormValues>(
+    emptyPaymentForm(""),
+  );
+  const [documentForm, setDocumentForm] = useState<DocumentFormValues>(
+    emptyDocumentForm(""),
+  );
 
   const refresh = useCallback(async () => {
     setState(await loadAppState());
@@ -78,7 +89,9 @@ export function useLedgerController() {
   }, [refresh]);
 
   const selectedCustomer = useMemo(
-    () => state?.customers.find((customer) => customer.id === selectedCustomerId) ?? null,
+    () =>
+      state?.customers.find((customer) => customer.id === selectedCustomerId) ??
+      null,
     [selectedCustomerId, state?.customers],
   );
 
@@ -93,7 +106,10 @@ export function useLedgerController() {
   }, [query, state]);
 
   const customerForLoan = useCallback(
-    (loanId: string) => state?.customers.find((customer) => customer.loans.some((loan) => loan.id === loanId)),
+    (loanId: string) =>
+      state?.customers.find((customer) =>
+        customer.loans.some((loan) => loan.id === loanId),
+      ),
     [state?.customers],
   );
 
@@ -118,7 +134,10 @@ export function useLedgerController() {
 
   const openVehicleModal = (customerId: string) => {
     if (!customerId) {
-      Alert.alert("Choose customer", "Open a customer before adding a vehicle.");
+      Alert.alert(
+        "Choose customer",
+        "Open a customer before adding a vehicle.",
+      );
       return;
     }
     setVehicleForm(emptyVehicleForm(customerId));
@@ -127,7 +146,10 @@ export function useLedgerController() {
 
   const openLoanModal = (customerId: string, vehicleId: string) => {
     if (!customerId || !vehicleId) {
-      Alert.alert("Choose vehicle", "Create or open a vehicle before creating a loan.");
+      Alert.alert(
+        "Choose vehicle",
+        "Create or open a vehicle before creating a loan.",
+      );
       return;
     }
     setLoanForm(emptyLoanForm(customerId, vehicleId));
@@ -145,7 +167,10 @@ export function useLedgerController() {
 
   const openDocumentModal = (customerId: string, vehicleId = "") => {
     if (!customerId) {
-      Alert.alert("Choose customer", "Open a customer before adding a document.");
+      Alert.alert(
+        "Choose customer",
+        "Open a customer before adding a document.",
+      );
       return;
     }
     setDocumentForm({
@@ -230,30 +255,35 @@ export function useLedgerController() {
   };
 
   const resetLocalData = () => {
-    Alert.alert("Clear local data", "This removes the SQLite demo data on this device.", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Clear",
-        style: "destructive",
-        onPress: async () => {
-          setBusy(true);
-          try {
-            await deleteAllData();
-            await seedDatabaseIfEmpty();
-            await refresh();
-          } finally {
-            setBusy(false);
-          }
+    Alert.alert(
+      "Clear local data",
+      "This removes the SQLite demo data on this device.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Clear",
+          style: "destructive",
+          onPress: async () => {
+            setBusy(true);
+            try {
+              await deleteAllData();
+              await seedDatabaseIfEmpty();
+              await refresh();
+            } finally {
+              setBusy(false);
+            }
+          },
         },
-      },
-    ]);
+      ],
+    );
   };
 
   const firstCustomerId = state?.customers[0]?.id ?? "";
   const defaultCustomerId = selectedCustomer?.id ?? firstCustomerId;
   const defaultVehicleId =
     selectedCustomer?.vehicles[0]?.id ??
-    state?.vehicles.find((vehicle) => vehicle.customerId === defaultCustomerId)?.id ??
+    state?.vehicles.find((vehicle) => vehicle.customerId === defaultCustomerId)
+      ?.id ??
     "";
 
   return {

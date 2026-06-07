@@ -13,7 +13,12 @@ import {
   PaymentFormValues,
   Vehicle,
 } from "../types";
-import { dateKey, isSameDate, summarizeLoan, toNumber } from "../utils/loanMath";
+import {
+  dateKey,
+  isSameDate,
+  summarizeLoan,
+  toNumber,
+} from "../utils/loanMath";
 
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
@@ -33,12 +38,18 @@ function bindParams(params: (string | number | null | undefined)[]) {
   return params.map((param) => param ?? null);
 }
 
-async function run(sql: string, ...params: (string | number | null | undefined)[]) {
+async function run(
+  sql: string,
+  ...params: (string | number | null | undefined)[]
+) {
   const db = await database();
   return db.runAsync(sql, ...bindParams(params));
 }
 
-async function all<T>(sql: string, ...params: (string | number | null | undefined)[]) {
+async function all<T>(
+  sql: string,
+  ...params: (string | number | null | undefined)[]
+) {
   const db = await database();
   return db.getAllAsync<T>(sql, ...bindParams(params));
 }
@@ -138,7 +149,12 @@ function uid(prefix: string) {
   return `${prefix}_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`;
 }
 
-async function audit(entityType: string, entityId: string, action: string, payload: unknown) {
+async function audit(
+  entityType: string,
+  entityId: string,
+  action: string,
+  payload: unknown,
+) {
   await run(
     "INSERT INTO audit_logs (id, entityType, entityId, action, payloadJson, createdAt) VALUES (?, ?, ?, ?, ?, ?)",
     uid("log"),
@@ -150,7 +166,12 @@ async function audit(entityType: string, entityId: string, action: string, paylo
   );
 }
 
-async function createNotification(loanId: string, title: string, body: string, dueDate: string) {
+async function createNotification(
+  loanId: string,
+  title: string,
+  body: string,
+  dueDate: string,
+) {
   await run(
     "INSERT INTO notifications (id, loanId, title, body, dueDate, isRead, createdAt) VALUES (?, ?, ?, ?, ?, 0, ?)",
     uid("ntf"),
@@ -175,7 +196,9 @@ export async function deleteAllData() {
 }
 
 export async function seedDatabaseIfEmpty() {
-  const rows = await all<{ count: number }>("SELECT COUNT(*) as count FROM customers");
+  const rows = await all<{ count: number }>(
+    "SELECT COUNT(*) as count FROM customers",
+  );
   if ((rows[0]?.count ?? 0) > 0) return;
 
   const customerId = uid("cus");
@@ -339,7 +362,12 @@ export async function createLoan(values: LoanFormValues) {
     stamp,
     stamp,
   );
-  await createNotification(id, "Loan created", `Loan ${loanCode} is active.`, values.dueDate);
+  await createNotification(
+    id,
+    "Loan created",
+    `Loan ${loanCode} is active.`,
+    values.dueDate,
+  );
   await audit("loan", id, "create", values);
   return id;
 }
@@ -359,48 +387,62 @@ export async function createPayment(values: PaymentFormValues) {
   );
   await audit("payment", id, "create", values);
 
-  const loans = await all<Loan>("SELECT * FROM loans WHERE id = ?", values.loanId);
+  const loans = await all<Loan>(
+    "SELECT * FROM loans WHERE id = ?",
+    values.loanId,
+  );
   const loan = loans[0];
   if (loan) {
-    const payments = await all<Payment>("SELECT * FROM payments WHERE loanId = ?", values.loanId);
+    const payments = await all<Payment>(
+      "SELECT * FROM payments WHERE loanId = ?",
+      values.loanId,
+    );
     const summary = summarizeLoan(loan, payments);
     if (summary.balance <= 0) {
-      await run("UPDATE loans SET status = ?, updatedAt = ? WHERE id = ?", "closed", now(), values.loanId);
+      await run(
+        "UPDATE loans SET status = ?, updatedAt = ? WHERE id = ?",
+        "closed",
+        now(),
+        values.loanId,
+      );
     } else if (summary.daysRemaining < 0) {
-      await run("UPDATE loans SET status = ?, updatedAt = ? WHERE id = ?", "overdue", now(), values.loanId);
+      await run(
+        "UPDATE loans SET status = ?, updatedAt = ? WHERE id = ?",
+        "overdue",
+        now(),
+        values.loanId,
+      );
     }
   }
   return id;
 }
 
-async function loadCustomers() {
-  const customers = await all<Customer>("SELECT * FROM customers ORDER BY createdAt DESC");
-  const vehicles = await all<Vehicle>("SELECT * FROM vehicles ORDER BY createdAt DESC");
-  const documents = await all<CustomerDocument>("SELECT * FROM customer_documents ORDER BY createdAt DESC");
-  const loans = await all<Loan>("SELECT * FROM loans ORDER BY createdAt DESC");
-
-  return customers.map((customer) => ({
-    ...customer,
-    vehicles: vehicles.filter((vehicle) => vehicle.customerId === customer.id),
-    loans: loans.filter((loan) => loan.customerId === customer.id),
-    documents: documents.filter((document) => document.customerId === customer.id),
-  }));
-}
-
 async function computeDashboard(loans: Loan[], payments: Payment[]) {
-  const totalMoneyLent = loans.reduce((sum, loan) => sum + loan.principalAmount, 0);
+  const totalMoneyLent = loans.reduce(
+    (sum, loan) => sum + loan.principalAmount,
+    0,
+  );
   const totalInterestCollected = payments
-    .filter((payment) => payment.paymentType === "interest" || payment.paymentType === "settlement")
+    .filter(
+      (payment) =>
+        payment.paymentType === "interest" ||
+        payment.paymentType === "settlement",
+    )
     .reduce((sum, payment) => sum + payment.amount, 0);
 
   const activeLoans = loans.filter((loan) => loan.status === "active").length;
   const overdueLoans = loans.filter((loan) => loan.status === "overdue").length;
-  const defaultedLoans = loans.filter((loan) => loan.status === "defaulted").length;
+  const defaultedLoans = loans.filter(
+    (loan) => loan.status === "defaulted",
+  ).length;
 
   let totalOutstandingPrincipal = 0;
   let expectedCollections = 0;
   for (const loan of loans) {
-    const summary = summarizeLoan(loan, payments.filter((payment) => payment.loanId === loan.id));
+    const summary = summarizeLoan(
+      loan,
+      payments.filter((payment) => payment.loanId === loan.id),
+    );
     totalOutstandingPrincipal += summary.principalOutstanding;
     expectedCollections += summary.interestDue;
   }
@@ -428,19 +470,33 @@ async function computeDashboard(loans: Loan[], payments: Payment[]) {
 }
 
 export async function loadAppState(): Promise<DatabaseAppState> {
-  const customers = await all<Customer>("SELECT * FROM customers ORDER BY createdAt DESC");
-  const vehicles = await all<Vehicle>("SELECT * FROM vehicles ORDER BY createdAt DESC");
+  const customers = await all<Customer>(
+    "SELECT * FROM customers ORDER BY createdAt DESC",
+  );
+  const vehicles = await all<Vehicle>(
+    "SELECT * FROM vehicles ORDER BY createdAt DESC",
+  );
   const loans = await all<Loan>("SELECT * FROM loans ORDER BY createdAt DESC");
-  const payments = await all<Payment>("SELECT * FROM payments ORDER BY createdAt DESC");
-  const documents = await all<CustomerDocument>("SELECT * FROM customer_documents ORDER BY createdAt DESC");
-  const notifications = await all<NotificationItem>("SELECT * FROM notifications ORDER BY createdAt DESC");
-  const auditLogs = await all<AuditLog>("SELECT * FROM audit_logs ORDER BY createdAt DESC");
+  const payments = await all<Payment>(
+    "SELECT * FROM payments ORDER BY createdAt DESC",
+  );
+  const documents = await all<CustomerDocument>(
+    "SELECT * FROM customer_documents ORDER BY createdAt DESC",
+  );
+  const notifications = await all<NotificationItem>(
+    "SELECT * FROM notifications ORDER BY createdAt DESC",
+  );
+  const auditLogs = await all<AuditLog>(
+    "SELECT * FROM audit_logs ORDER BY createdAt DESC",
+  );
 
   const hydratedCustomers = customers.map((customer) => ({
     ...customer,
     vehicles: vehicles.filter((vehicle) => vehicle.customerId === customer.id),
     loans: loans.filter((loan) => loan.customerId === customer.id),
-    documents: documents.filter((document) => document.customerId === customer.id),
+    documents: documents.filter(
+      (document) => document.customerId === customer.id,
+    ),
   }));
 
   const dashboard = await computeDashboard(loans, payments);

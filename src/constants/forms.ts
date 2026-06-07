@@ -33,7 +33,10 @@ export const emptyVehicleForm = (customerId: string): Vehicle => ({
   updatedAt: new Date().toISOString(),
 });
 
-export const emptyLoanForm = (customerId: string, vehicleId: string): LoanFormValues => ({
+export const emptyLoanForm = (
+  customerId: string,
+  vehicleId: string,
+): LoanFormValues => ({
   customerId,
   vehicleId,
   principalAmount: "35000",
