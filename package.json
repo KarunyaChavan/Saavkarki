@@ -1,0 +1,26 @@
+{
+  "name": "saavkarki",
+  "version": "0.1.0",
+  "private": true,
+  "main": "node_modules/expo/AppEntry.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "expo": "latest",
+    "expo-sqlite": "latest",
+    "expo-status-bar": "latest",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-native": "latest",
+    "react-native-web": "^0.21.2"
+  },
+  "devDependencies": {
+    "@types/react": "latest",
+    "typescript": "latest"
+  }
+}
